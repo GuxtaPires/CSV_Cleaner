@@ -1,33 +1,72 @@
-# CSV Cleaner 🧹
+# 🧹 CSV Cleaner
 
-Ferramenta desenvolvida em Python para automatizar a limpeza e a padronização de arquivos CSV, tornando os dados mais organizados e prontos para análises.
+Aplicação web desenvolvida em Python para facilitar a limpeza e a preparação de arquivos CSV, permitindo identificar problemas comuns, aplicar regras de tratamento e exportar os dados limpos.
 
-## Funcionalidades
+## 🚀 Funcionalidades
 
-- Remoção de registros duplicados.
-- Tratamento de valores ausentes.
-- Padronização dos nomes das colunas.
-- Exportação dos dados tratados para um novo arquivo CSV.
+- Upload de arquivos CSV.
+- Diagnóstico inicial com quantidade de linhas, colunas, duplicatas e valores ausentes.
+- Visualização dos dados originais.
+- Remoção de linhas duplicadas.
+- Remoção de espaços extras em textos.
+- Padronização de textos vazios como valores ausentes.
+- Visualização dos resultados após a limpeza.
+- Download do arquivo CSV tratado.
 
-## Tecnologias
+## 🛠️ Tecnologias
 
 - Python
 - Pandas
+- Streamlit
 
-## Como utilizar
+## ⚙️ Como executar
 
-Instale a dependência:
-
-```bash
-pip install pandas
-```
-
-Execute o script:
+**1. Clone o repositório**
 
 ```bash
-python main.py
+git clone <URL_DO_REPOSITORIO>
+cd CSV_Cleaner
 ```
 
-## Objetivo
+**2. Crie e ative o ambiente virtual**
 
-Aplicar conceitos de Python e manipulação de dados na construção de uma solução prática e reutilizável para tarefas de limpeza de dados.
+No Windows:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+**3. Instale as dependências**
+
+```bash
+py -m pip install -r requirements.txt
+```
+
+**4. Execute a aplicação**
+
+```bash
+py -m streamlit run app.py
+```
+
+A aplicação será aberta no navegador. Envie um arquivo CSV, selecione as regras desejadas, execute a limpeza e baixe o resultado.
+
+## 📁 Estrutura do projeto
+
+```text
+CSV_Cleaner/
+├── app.py
+├── cleaner.py
+├── requirements.txt
+├── README.md
+└── data/
+    └── dirty_cafe_sales.csv
+```
+
+## 🎯 Objetivo
+
+Projeto de portfólio voltado à prática de Python, manipulação de dados com Pandas e desenvolvimento de aplicações para automatizar tarefas de preparação de dados.
+
+---
+
+Desenvolvido como projeto de aprendizado em **Python e Data Analytics**.
