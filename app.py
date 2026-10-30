@@ -1,71 +1,114 @@
 import pandas as pd
 import streamlit as st
 
-# Importa as funções de limpeza criadas no cleaner.py.
+# Importa as funções de limpeza e diagnóstico.
 from cleaner import (
     remover_duplicatas,
     limpar_espacos,
     padronizar_vazios,
+    diagnostico_colunas,
 )
 
-# Configura a página da aplicação.
+
+# ==========================================
+# CONFIGURAÇÕES DA PÁGINA
+# ==========================================
+
 st.set_page_config(
     page_title="CSV Cleaner",
     page_icon="🧹",
     layout="wide"
 )
 
-# Exibe o título e uma breve descrição.
+# Título e descrição da aplicação.
 st.title("🧹 CSV Cleaner")
 st.write("Analise, limpe e exporte seus arquivos CSV.")
 
-# Cria um campo para o usuário enviar um arquivo CSV.
+
+# ==========================================
+# UPLOAD DO ARQUIVO
+# ==========================================
+
+# Permite ao usuário enviar um arquivo CSV.
 arquivo = st.file_uploader(
     "Envie seu arquivo CSV",
     type=["csv"]
 )
 
-# Só executa o processamento quando um arquivo é enviado.
+
+# Executa o restante da aplicação somente
+# quando um arquivo é enviado.
 if arquivo is not None:
+
     try:
-        # Lê o CSV e transforma os dados em um DataFrame.
+        # Lê o arquivo e transforma em DataFrame.
         df = pd.read_csv(arquivo)
 
         st.success("Arquivo carregado com sucesso!")
 
-        # Exibe o diagnóstico dos dados originais.
+        # ==========================================
+        # DIAGNÓSTICO GERAL
+        # ==========================================
+
         st.subheader("Diagnóstico original")
 
-        # Divide a tela em quatro colunas para as métricas.
+        # Divide a área em quatro colunas.
         col1, col2, col3, col4 = st.columns(4)
 
-        # Quantidade de linhas e colunas do arquivo.
+        # Exibe a quantidade de linhas.
         col1.metric("Linhas", len(df))
+
+        # Exibe a quantidade de colunas.
         col2.metric("Colunas", len(df.columns))
 
-        # Conta as linhas completamente duplicadas.
+        # Conta as linhas duplicadas.
         col3.metric(
             "Duplicatas",
             int(df.duplicated().sum())
         )
 
-        # Conta todas as células com valores ausentes.
+        # Conta todos os valores ausentes.
         col4.metric(
             "Valores ausentes",
             int(df.isna().sum().sum())
         )
 
-        # Cria uma seção expansível para visualizar os dados.
+        # ==========================================
+        # VISUALIZAÇÃO DOS DADOS ORIGINAIS
+        # ==========================================
+
         with st.expander("Visualizar dados originais"):
+
             st.dataframe(
                 df.head(100),
                 use_container_width=True
             )
 
+        # ==========================================
+        # DIAGNÓSTICO POR COLUNA
+        # ==========================================
+
+        with st.expander("Diagnóstico por coluna"):
+
+            # Executa o diagnóstico detalhado.
+            diagnostico = diagnostico_colunas(df)
+
+            # Exibe os resultados em formato de tabela.
+            st.dataframe(
+                diagnostico,
+                use_container_width=True,
+                hide_index=True
+            )
+
         st.divider()
+
+        # ==========================================
+        # CONFIGURAÇÃO DA LIMPEZA
+        # ==========================================
+
         st.subheader("Configurar limpeza")
 
-        # Cada checkbox permite ativar ou desativar uma regra.
+        # Permite escolher quais regras serão aplicadas.
         remover_dups = st.checkbox(
             "Remover linhas duplicadas",
             value=True
@@ -81,84 +124,93 @@ if arquivo is not None:
             value=True
         )
 
-        # Executa a limpeza somente quando o botão é clicado.
+        # ==========================================
+        # EXECUÇÃO DA LIMPEZA
+        # ==========================================
+
         if st.button("🧹 Limpar dados", type="primary"):
 
-            # Cria uma cópia dos dados originais para trabalhar.
+            # Cria uma cópia dos dados originais.
             df_limpo = df.copy()
 
-            # Aplica a remoção de espaços, se selecionada.
+            # Aplica cada regra conforme a seleção.
             if limpar_textos:
                 df_limpo = limpar_espacos(df_limpo)
 
-            # Padroniza os textos vazios, se selecionado.
             if tratar_vazios:
                 df_limpo = padronizar_vazios(df_limpo)
 
-            # Remove as duplicatas, se selecionado.
             if remover_dups:
                 df_limpo = remover_duplicatas(df_limpo)
 
             # Guarda os resultados na sessão do Streamlit.
-            # Isso permite exibi-los mesmo após a atualização da tela.
             st.session_state["df_limpo"] = df_limpo
             st.session_state["df_original"] = df.copy()
 
-        # Só exibe os resultados se uma limpeza já foi executada.
+        # ==========================================
+        # RESULTADO DA LIMPEZA
+        # ==========================================
+
+        # Verifica se uma limpeza já foi executada.
         if "df_limpo" in st.session_state:
 
-            # Recupera os dados armazenados na sessão.
+            # Recupera os DataFrames armazenados.
             df_limpo = st.session_state["df_limpo"]
             df_original = st.session_state["df_original"]
 
             st.divider()
             st.subheader("Resultado da limpeza")
 
-            # Organiza as métricas dos dados tratados.
+            # Organiza as métricas em três colunas.
             col1, col2, col3 = st.columns(3)
 
-            # Mostra a quantidade final de linhas e a variação.
+            # Mostra a quantidade final de linhas.
+            # O delta indica a diferença em relação ao original.
             col1.metric(
                 "Linhas finais",
                 len(df_limpo),
                 delta=len(df_limpo) - len(df_original)
             )
 
-            # Mostra quantas duplicatas ainda existem.
+            # Mostra quantas duplicatas restaram.
             col2.metric(
                 "Duplicatas restantes",
                 int(df_limpo.duplicated().sum())
             )
 
-            # Conta os valores ausentes após a limpeza.
-            valores_ausentes = int(
-                df_limpo.isna().sum().sum()
-            )
-
-            # Compara os valores ausentes com o arquivo original.
+            # Calcula os valores ausentes antes e depois.
             ausentes_originais = int(
                 df_original.isna().sum().sum()
             )
 
-            col3.metric(
-                "Valores ausentes",
-                valores_ausentes,
-                delta=valores_ausentes - ausentes_originais
+            ausentes_finais = int(
+                df_limpo.isna().sum().sum()
             )
 
-            # Exibe até 100 linhas do resultado.
+            # Exibe a quantidade de valores ausentes.
+            col3.metric(
+                "Valores ausentes",
+                ausentes_finais,
+                delta=ausentes_finais - ausentes_originais
+            )
+
+            # Exibe uma prévia dos dados tratados.
             st.dataframe(
                 df_limpo.head(100),
                 use_container_width=True
             )
 
-            # Converte o DataFrame para CSV e prepara os bytes
-            # para que o navegador possa baixar o arquivo.
+            # ==========================================
+            # DOWNLOAD DO CSV LIMPO
+            # ==========================================
+
+            # Converte o DataFrame para CSV.
+            # utf-8-sig ajuda na compatibilidade com Excel.
             csv_limpo = df_limpo.to_csv(
                 index=False
             ).encode("utf-8-sig")
 
-            # Cria o botão de download do arquivo tratado.
+            # Disponibiliza o arquivo para download.
             st.download_button(
                 label="⬇️ Baixar CSV limpo",
                 data=csv_limpo,
@@ -166,10 +218,15 @@ if arquivo is not None:
                 mime="text/csv"
             )
 
-    # Exibe uma mensagem caso ocorra algum erro no processamento.
+    # Trata erros durante a leitura ou processamento.
     except Exception as erro:
-        st.error(f"Não foi possível processar o arquivo: {erro}")
 
-# Mensagem exibida antes do envio de qualquer arquivo.
+        st.error(
+            f"Não foi possível processar o arquivo: {erro}"
+        )
+
+
+# Mensagem inicial, antes do envio de um arquivo.
 else:
+
     st.info("Envie um CSV para começar.")
