@@ -1,15 +1,15 @@
 import pandas as pd
 import streamlit as st
 
-# Importa as funções de limpeza e diagnóstico.
+# Importa as funções de limpeza, validação e tratamento.
 from cleaner import (
     remover_duplicatas,
     limpar_espacos,
     padronizar_vazios,
     diagnostico_colunas,
-    validar_coluna
+    validar_coluna,
+    tratar_coluna
 )
-
 
 # ==========================================
 # CONFIGURAÇÕES DA PÁGINA
@@ -38,17 +38,16 @@ arquivo = st.file_uploader(
 if arquivo is not None:
 
     try:
-
-        # Lê o arquivo e transforma em DataFrame.
+        # Lê o CSV e transforma os dados em DataFrame.
         df = pd.read_csv(arquivo)
 
-        # Identifica quando um novo arquivo é enviado.
+        # Identifica o arquivo enviado.
         identificador_arquivo = (
             arquivo.name,
             arquivo.size
         )
 
-        # Limpa resultados antigos quando o arquivo muda.
+        # Limpa resultados anteriores quando o arquivo muda.
         if st.session_state.get("arquivo_atual") != identificador_arquivo:
 
             st.session_state["arquivo_atual"] = identificador_arquivo
@@ -56,7 +55,10 @@ if arquivo is not None:
             for chave in [
                 "df_limpo",
                 "df_original",
-                "resultado_validacao"
+                "df_tratado",
+                "resultado_validacao",
+                "coluna_tratada",
+                "tipo_tratamento"
             ]:
                 st.session_state.pop(chave, None)
 
@@ -72,7 +74,6 @@ if arquivo is not None:
         col1, col2, col3, col4 = st.columns(4)
 
         col1.metric("Linhas", len(df))
-
         col2.metric("Colunas", len(df.columns))
 
         col3.metric(
@@ -117,61 +118,58 @@ if arquivo is not None:
 
 
         # ==========================================
-        # VALIDAÇÃO DE TIPOS DE DADOS
+        # VALIDAÇÃO DE DADOS
         # ==========================================
 
         st.subheader("Validação de dados")
 
         st.write(
-            "Selecione uma coluna e informe qual tipo de dado "
-            "você espera encontrar nela."
+            "Selecione uma coluna e informe qual tipo "
+            "de dado você espera encontrar nela."
         )
 
-        # Permite selecionar uma coluna do arquivo.
-        coluna_selecionada = st.selectbox(
-            "Selecione a coluna",
-            options=list(df.columns)
+        coluna_validacao = st.selectbox(
+            "Coluna para validação",
+            options=list(df.columns),
+            key="coluna_validacao"
         )
 
-        # Permite escolher o tipo esperado.
-        tipo_esperado = st.selectbox(
-            "Tipo de dado esperado",
-            options=["Numérico", "Data"]
+        tipo_validacao = st.selectbox(
+            "Tipo esperado",
+            options=["Numérico", "Data"],
+            key="tipo_validacao"
         )
 
-        # Executa a validação quando o botão é clicado.
         if st.button("🔎 Validar coluna"):
 
             resultado = validar_coluna(
                 df,
-                coluna_selecionada,
-                tipo_esperado
+                coluna_validacao,
+                tipo_validacao
             )
 
-            # Guarda o resultado na sessão.
             st.session_state["resultado_validacao"] = {
-                "coluna": coluna_selecionada,
-                "tipo": tipo_esperado,
+                "coluna": coluna_validacao,
+                "tipo": tipo_validacao,
                 "resultado": resultado
             }
 
-        # Exibe o resultado da última validação.
+        # Recupera e apresenta a última validação.
         if "resultado_validacao" in st.session_state:
 
-            dados = st.session_state["resultado_validacao"]
+            dados_validacao = st.session_state[
+                "resultado_validacao"
+            ]
 
-            resultado = dados["resultado"]
-
-            # Garante que o resultado exibido pertence
-            # à coluna e ao tipo atualmente selecionados.
             if (
-                dados["coluna"] == coluna_selecionada
-                and dados["tipo"] == tipo_esperado
+                dados_validacao["coluna"] == coluna_validacao
+                and dados_validacao["tipo"] == tipo_validacao
             ):
+
+                resultado = dados_validacao["resultado"]
 
                 st.markdown("### Resultado da validação")
 
-                # Organiza as métricas em quatro colunas.
                 col1, col2, col3, col4 = st.columns(4)
 
                 col1.metric(
@@ -194,7 +192,6 @@ if arquivo is not None:
                     f'{resultado["percentual_invalidos"]}%'
                 )
 
-                # Exibe os valores problemáticos.
                 if resultado["invalidos"] > 0:
 
                     st.warning(
@@ -210,8 +207,7 @@ if arquivo is not None:
                 else:
 
                     st.success(
-                        "Nenhuma inconsistência encontrada "
-                        "para o tipo selecionado!"
+                        "Nenhuma inconsistência encontrada!"
                     )
 
 
@@ -219,7 +215,115 @@ if arquivo is not None:
 
 
         # ==========================================
-        # CONFIGURAÇÃO DA LIMPEZA
+        # TRATAMENTO DE INCONSISTÊNCIAS
+        # ==========================================
+
+        st.subheader("Tratamento de inconsistências")
+
+        st.write(
+            "Escolha uma coluna e o tipo esperado para "
+            "converter os valores. Os valores inválidos "
+            "serão transformados em valores ausentes."
+        )
+
+        coluna_tratamento = st.selectbox(
+            "Coluna para tratamento",
+            options=list(df.columns),
+            key="coluna_tratamento"
+        )
+
+        tipo_tratamento = st.selectbox(
+            "Tipo de conversão",
+            options=["Numérico", "Data"],
+            key="tipo_tratamento"
+        )
+
+        # Explica o que acontecerá com os dados.
+        st.info(
+            "O tratamento não exclui linhas. "
+            "Valores que não puderem ser convertidos "
+            "serão transformados em valores ausentes."
+        )
+
+        if st.button("⚙️ Aplicar tratamento"):
+
+            # Usa os dados já limpos, caso a limpeza básica
+            # tenha sido executada. Caso contrário, usa o original.
+            df_base = st.session_state.get("df_limpo", df)
+
+            # Aplica o tratamento na coluna selecionada.
+            df_tratado = tratar_coluna(
+                df_base,
+                coluna_tratamento,
+                tipo_tratamento
+            )
+
+            # Armazena o resultado na sessão.
+            st.session_state["df_tratado"] = df_tratado
+
+            st.session_state["coluna_tratada"] = coluna_tratamento
+
+            st.session_state["tipo_tratamento"] = tipo_tratamento
+
+        # Exibe o resultado do tratamento.
+        if "df_tratado" in st.session_state:
+
+            df_tratado = st.session_state["df_tratado"]
+
+            coluna_salva = st.session_state["coluna_tratada"]
+
+            tipo_salvo = st.session_state["tipo_tratamento"]
+
+            # Evita mostrar um resultado antigo como se fosse novo.
+            if (
+                coluna_salva == coluna_tratamento
+                and tipo_salvo == tipo_tratamento
+            ):
+
+                st.markdown("### Resultado do tratamento")
+
+                # Compara a quantidade de valores ausentes
+                # antes e depois da conversão.
+                df_base = st.session_state.get("df_limpo", df)
+
+                ausentes_antes = int(
+                    df_base[coluna_tratada].isna().sum()
+                )
+
+                ausentes_depois = int(
+                    df_tratado[coluna_tratada].isna().sum()
+                )
+
+                novos_ausentes = ausentes_depois - ausentes_antes
+
+                col1, col2, col3 = st.columns(3)
+
+                col1.metric(
+                    "Linhas preservadas",
+                    len(df_tratado)
+                )
+
+                col2.metric(
+                    "Novos valores ausentes",
+                    novos_ausentes
+                )
+
+                col3.metric(
+                    "Tipo resultante",
+                    str(df_tratado[coluna_tratada].dtype)
+                )
+
+                st.dataframe(
+                    df_tratado.head(100),
+                    use_container_width=True
+                )
+
+
+        st.divider()
+
+
+        # ==========================================
+        # LIMPEZA BÁSICA
         # ==========================================
 
         st.subheader("Configurar limpeza")
@@ -239,14 +343,9 @@ if arquivo is not None:
             value=True
         )
 
-
-        # ==========================================
-        # EXECUÇÃO DA LIMPEZA
-        # ==========================================
-
         if st.button("🧹 Limpar dados", type="primary"):
 
-            # Cria uma cópia dos dados originais.
+            # Começa com uma cópia dos dados originais.
             df_limpo = df.copy()
 
             # Aplica as regras selecionadas.
@@ -259,9 +358,15 @@ if arquivo is not None:
             if remover_dups:
                 df_limpo = remover_duplicatas(df_limpo)
 
-            # Armazena os resultados na sessão.
+            # Armazena o resultado da limpeza.
             st.session_state["df_limpo"] = df_limpo
             st.session_state["df_original"] = df.copy()
+
+            # Descarta tratamentos anteriores,
+            # pois a base utilizada foi atualizada.
+            st.session_state.pop("df_tratado", None)
+            st.session_state.pop("coluna_tratada", None)
+            st.session_state.pop("tipo_tratamento", None)
 
 
         # ==========================================
@@ -275,25 +380,21 @@ if arquivo is not None:
             df_original = st.session_state["df_original"]
 
             st.divider()
-
             st.subheader("Resultado da limpeza")
 
             col1, col2, col3 = st.columns(3)
 
-            # Quantidade final de linhas.
             col1.metric(
                 "Linhas finais",
                 len(df_limpo),
                 delta=len(df_limpo) - len(df_original)
             )
 
-            # Duplicatas restantes.
             col2.metric(
                 "Duplicatas restantes",
                 int(df_limpo.duplicated().sum())
             )
 
-            # Valores ausentes antes e depois.
             ausentes_originais = int(
                 df_original.isna().sum().sum()
             )
@@ -308,34 +409,44 @@ if arquivo is not None:
                 delta=ausentes_finais - ausentes_originais
             )
 
-            # Visualização dos dados tratados.
             st.dataframe(
                 df_limpo.head(100),
                 use_container_width=True
             )
 
 
-            # ==========================================
-            # DOWNLOAD DO CSV LIMPO
-            # ==========================================
+        # ==========================================
+        # DOWNLOAD DOS DADOS
+        # ==========================================
 
-            # Converte o DataFrame para CSV.
-            csv_limpo = df_limpo.to_csv(
-                index=False
-            ).encode("utf-8-sig")
+        # Prioriza o resultado do tratamento, se existir.
+        # Caso contrário, disponibiliza os dados limpos
+        # ou, na ausência de limpeza, os dados originais.
 
-            # Disponibiliza o arquivo para download.
-            st.download_button(
-                label="⬇️ Baixar CSV limpo",
-                data=csv_limpo,
-                file_name="dados_limpos.csv",
-                mime="text/csv"
-            )
+        if "df_tratado" in st.session_state:
 
+            df_exportar = st.session_state["df_tratado"]
 
-    # ==========================================
-    # TRATAMENTO DE ERROS
-    # ==========================================
+        elif "df_limpo" in st.session_state:
+
+            df_exportar = st.session_state["df_limpo"]
+
+        else:
+
+            df_exportar = df
+
+        # Converte os dados para CSV.
+        csv_final = df_exportar.to_csv(
+            index=False
+        ).encode("utf-8-sig")
+
+        st.download_button(
+            label="⬇️ Baixar CSV final",
+            data=csv_final,
+            file_name="dados_tratados.csv",
+            mime="text/csv"
+        )
+
 
     except Exception as erro:
 
@@ -344,7 +455,6 @@ if arquivo is not None:
         )
 
 
-# Mensagem exibida antes do upload.
 else:
 
     st.info("Envie um CSV para começar.")
