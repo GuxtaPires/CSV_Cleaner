@@ -1,23 +1,17 @@
 import pandas as pd
 
-
 def remover_duplicatas(df: pd.DataFrame) -> pd.DataFrame:
     """Remove linhas completamente duplicadas."""
-
     return df.drop_duplicates().copy()
-
 
 def limpar_espacos(df: pd.DataFrame) -> pd.DataFrame:
     """Remove espaços extras no início e no fim dos textos."""
-
     df = df.copy()
 
-    # Seleciona somente as colunas de texto.
     colunas_texto = df.select_dtypes(
         include=["object", "string"]
     ).columns
 
-    # Remove espaços das extremidades.
     for coluna in colunas_texto:
         df[coluna] = df[coluna].str.strip()
 
@@ -26,14 +20,12 @@ def limpar_espacos(df: pd.DataFrame) -> pd.DataFrame:
 
 def padronizar_vazios(df: pd.DataFrame) -> pd.DataFrame:
     """Converte textos vazios em valores ausentes."""
-
     df = df.copy()
 
     colunas_texto = df.select_dtypes(
         include=["object", "string"]
     ).columns
 
-    # Substitui células vazias ou com apenas espaços por pd.NA.
     for coluna in colunas_texto:
         df[coluna] = df[coluna].replace(
             r"^\s*$", pd.NA, regex=True
@@ -44,7 +36,6 @@ def padronizar_vazios(df: pd.DataFrame) -> pd.DataFrame:
 
 def limpar_csv(df: pd.DataFrame) -> pd.DataFrame:
     """Executa todas as regras básicas de limpeza."""
-
     df_limpo = remover_duplicatas(df)
     df_limpo = limpar_espacos(df_limpo)
     df_limpo = padronizar_vazios(df_limpo)
@@ -54,24 +45,17 @@ def limpar_csv(df: pd.DataFrame) -> pd.DataFrame:
 
 def diagnostico_colunas(df: pd.DataFrame) -> pd.DataFrame:
     """Gera um diagnóstico de qualidade para cada coluna."""
-
     diagnostico = []
 
     for coluna in df.columns:
-
-        # Conta valores ausentes.
         ausentes = int(df[coluna].isna().sum())
 
-        # Calcula o percentual de valores ausentes.
         percentual_ausentes = (
             (ausentes / len(df)) * 100
             if len(df) > 0 else 0
         )
 
-        # Conta valores únicos, ignorando ausentes.
         valores_unicos = int(df[coluna].nunique())
-
-        # Identifica o tipo de dado.
         tipo = str(df[coluna].dtype)
 
         diagnostico.append({
@@ -90,32 +74,17 @@ def validar_coluna(
     coluna: str,
     tipo_esperado: str
 ) -> dict:
-    """
-    Valida uma coluna conforme o tipo esperado.
+    """Identifica valores incompatíveis com o tipo esperado."""
 
-    Retorna a quantidade de valores válidos,
-    inválidos e uma tabela com os valores problemáticos.
-    """
+    valores_preenchidos = df[coluna].dropna()
 
-    # Recupera a coluna selecionada.
-    serie = df[coluna]
-
-    # Ignora valores que já estão ausentes.
-    valores_preenchidos = serie.dropna()
-
-    # Validação numérica.
     if tipo_esperado == "Numérico":
-
-        # Tenta converter os valores para números.
         convertidos = pd.to_numeric(
             valores_preenchidos,
             errors="coerce"
         )
 
-    # Validação de datas.
     elif tipo_esperado == "Data":
-
-        # Tenta interpretar os valores como datas.
         convertidos = pd.to_datetime(
             valores_preenchidos,
             errors="coerce"
@@ -124,29 +93,61 @@ def validar_coluna(
     else:
         raise ValueError("Tipo de validação não suportado.")
 
-    # Identifica os valores que não puderam ser convertidos.
     mascara_invalidos = convertidos.isna()
-
-    # Recupera os valores inválidos e seus índices originais.
     invalidos = valores_preenchidos[mascara_invalidos]
 
-    # Monta uma tabela com os valores problemáticos.
     tabela_invalidos = pd.DataFrame({
         "Índice original": invalidos.index,
         "Valor inválido": invalidos.astype(str).values
     })
 
-    # Retorna o resultado da validação.
+    total = len(valores_preenchidos)
+    quantidade_invalidos = int(mascara_invalidos.sum())
+
     return {
-        "total": len(valores_preenchidos),
-        "validos": int((~mascara_invalidos).sum()),
-        "invalidos": int(mascara_invalidos.sum()),
+        "total": total,
+        "validos": total - quantidade_invalidos,
+        "invalidos": quantidade_invalidos,
         "percentual_invalidos": (
-            round(
-                (mascara_invalidos.sum() / len(valores_preenchidos)) * 100,
-                2
-            )
-            if len(valores_preenchidos) > 0 else 0
+            round((quantidade_invalidos / total) * 100, 2)
+            if total > 0 else 0
         ),
         "detalhes": tabela_invalidos
     }
+
+
+def tratar_coluna(
+    df: pd.DataFrame,
+    coluna: str,
+    tipo_esperado: str
+) -> pd.DataFrame:
+    """
+    Converte uma coluna para o tipo selecionado.
+
+    Valores incompatíveis são transformados em valores ausentes.
+    O DataFrame original não é modificado.
+    """
+
+    # Trabalha sobre uma cópia dos dados.
+    df_tratado = df.copy()
+
+    # Converte a coluna para o tipo numérico.
+    if tipo_esperado == "Numérico":
+
+        df_tratado[coluna] = pd.to_numeric(
+            df_tratado[coluna],
+            errors="coerce"
+        )
+
+    # Converte a coluna para o formato de data.
+    elif tipo_esperado == "Data":
+
+        df_tratado[coluna] = pd.to_datetime(
+            df_tratado[coluna],
+            errors="coerce"
+        )
+
+    else:
+        raise ValueError("Tipo de tratamento não suportado.")
+
+    return df_tratado
