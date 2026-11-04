@@ -1,55 +1,40 @@
 # 🧹 CSV Cleaner
 
-Aplicação web desenvolvida em Python para facilitar a limpeza e a preparação de arquivos CSV, permitindo identificar problemas comuns, aplicar regras de tratamento e exportar os dados limpos.
+Aplicação web desenvolvida em Python para análise, validação e tratamento de arquivos CSV. O projeto permite identificar problemas de qualidade nos dados, aplicar regras de limpeza e exportar arquivos tratados.
 
 ## 🚀 Funcionalidades
 
-- Upload de arquivos CSV.
-- Diagnóstico inicial com quantidade de linhas, colunas, duplicatas e valores ausentes.
-- Visualização dos dados originais.
+### 📊 Diagnóstico de dados
+- Identificação da quantidade de linhas e colunas.
+- Contagem de registros duplicados.
+- Identificação de valores ausentes.
+- Análise individual das colunas.
+- Identificação de tipos de dados e valores únicos.
+- Cálculo do percentual de valores ausentes por coluna.
+
+### 🔎 Validação de dados
+- Validação de colunas numéricas.
+- Validação de datas.
+- Identificação de valores incompatíveis com o tipo esperado.
+- Exibição dos valores inconsistentes encontrados.
+
+### 🧹 Limpeza e tratamento
 - Remoção de linhas duplicadas.
 - Remoção de espaços extras em textos.
 - Padronização de textos vazios como valores ausentes.
-- Visualização dos resultados após a limpeza.
-- Download do arquivo CSV tratado.
+- Conversão de colunas para formatos numéricos.
+- Conversão de colunas para formatos de data.
+- Substituição de valores inválidos por valores ausentes, sem excluir registros.
 
-## 🛠️ Tecnologias
+### 📥 Exportação
+- Visualização dos dados originais e tratados.
+- Download dos arquivos processados em CSV.
 
-- Python
-- Pandas
-- Streamlit
+## 🛠️ Tecnologias utilizadas
 
-## ⚙️ Como executar
-
-**1. Clone o repositório**
-
-```bash
-git clone <URL_DO_REPOSITORIO>
-cd CSV_Cleaner
-```
-
-**2. Crie e ative o ambiente virtual**
-
-No Windows:
-
-```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-**3. Instale as dependências**
-
-```bash
-py -m pip install -r requirements.txt
-```
-
-**4. Execute a aplicação**
-
-```bash
-py -m streamlit run app.py
-```
-
-A aplicação será aberta no navegador. Envie um arquivo CSV, selecione as regras desejadas, execute a limpeza e baixe o resultado.
+- **Python:** linguagem principal.
+- **Pandas:** manipulação, análise e tratamento de dados.
+- **Streamlit:** desenvolvimento da interface web.
 
 ## 📁 Estrutura do projeto
 
@@ -63,10 +48,47 @@ CSV_Cleaner/
     └── dirty_cafe_sales.csv
 ```
 
-## 🎯 Objetivo
+## ⚙️ Como executar
 
-Projeto de portfólio voltado à prática de Python, manipulação de dados com Pandas e desenvolvimento de aplicações para automatizar tarefas de preparação de dados.
+**1. Clone o repositório**
+
+```bash
+git clone <URL_DO_REPOSITORIO>
+cd CSV_Cleaner
+```
+
+**2. Crie o ambiente virtual**
+
+```powershell
+py -m venv .venv
+```
+
+**3. Ative o ambiente virtual**
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+**4. Instale as dependências**
+
+```bash
+py -m pip install -r requirements.txt
+```
+
+**5. Execute a aplicação**
+
+```bash
+py -m streamlit run app.py
+```
+
+A aplicação será aberta no navegador. Envie um arquivo CSV para iniciar o diagnóstico, validar os dados, aplicar tratamentos e exportar o resultado.
+
+## 🎯 Objetivo do projeto
+
+Desenvolver uma ferramenta prática de preparação e qualidade de dados, aplicando conceitos de manipulação de dados com Python, validação de informações e desenvolvimento de aplicações web.
+
+O projeto também faz parte do meu desenvolvimento técnico nas áreas de **Data Analytics, Engenharia de Dados e Python**.
 
 ---
 
-Desenvolvido como projeto de aprendizado em **Python e Data Analytics**.
+Desenvolvido como projeto de portfólio.
